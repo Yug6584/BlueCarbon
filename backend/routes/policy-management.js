@@ -346,4 +346,115 @@ router.get('/filter/status/:status', async (req, res) => {
   }
 });
 
+// Export policies
+router.get('/export/:format', async (req, res) => {
+  try {
+    const policies = await loadPolicies();
+    const format = req.params.format.toLowerCase();
+    
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename="indian-blue-carbon-policies.json"');
+      res.json(policies);
+    } else if (format === 'csv') {
+      // Convert to CSV
+      const csvHeader = 'ID,Name,Description,Status,Ministry,Type,Scope,Last Updated,Version\n';
+      const csvRows = policies.map(policy => 
+        `"${policy.id}","${policy.name}","${policy.description.replace(/"/g, '""')}","${policy.status}","${policy.ministry}","${policy.type}","${policy.scope}","${policy.lastUpdated}","${policy.version}"`
+      ).join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="indian-blue-carbon-policies.csv"');
+      res.send(csvHeader + csvRows);
+    } else if (format === 'pdf') {
+      // For PDF, we'll return a structured text format
+      const pdfContent = policies.map(policy => 
+        `Policy ID: ${policy.id}\nName: ${policy.name}\nMinistry: ${policy.ministry}\nStatus: ${policy.status}\nDescription: ${policy.description}\n\n---\n\n`
+      ).join('');
+      
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', 'attachment; filename="indian-blue-carbon-policies.txt"');
+      res.send(`INDIAN BLUE CARBON POLICIES REPORT\nGenerated on: ${new Date().toISOString()}\n\n${pdfContent}`);
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Unsupported export format. Use json, csv, or pdf.'
+      });
+    }
+  } catch (error) {
+    console.error('Error exporting policies:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting policies'
+    });
+  }
+});
+
+// Refresh policies (reload from default data)
+router.post('/refresh', async (req, res) => {
+  try {
+    const defaultPolicies = getDefaultPolicies();
+    await savePolicies(defaultPolicies);
+    
+    res.json({
+      success: true,
+      message: 'Policies refreshed successfully',
+      count: defaultPolicies.length
+    });
+  } catch (error) {
+    console.error('Error refreshing policies:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error refreshing policies'
+    });
+  }
+});
+
+// Get policy statistics
+router.get('/stats', async (req, res) => {
+  try {
+    const policies = await loadPolicies();
+    
+    const stats = {
+      total: policies.length,
+      active: policies.filter(p => p.status === 'active').length,
+      draft: policies.filter(p => p.status === 'draft').length,
+      inactive: policies.filter(p => p.status === 'inactive').length,
+      byMinistry: {},
+      byType: {},
+      byScope: {},
+      recentUpdates: policies
+        .sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated))
+        .slice(0, 5)
+        .map(p => ({ id: p.id, name: p.name, lastUpdated: p.lastUpdated }))
+    };
+    
+    // Group by ministry
+    policies.forEach(policy => {
+      stats.byMinistry[policy.ministry] = (stats.byMinistry[policy.ministry] || 0) + 1;
+    });
+    
+    // Group by type
+    policies.forEach(policy => {
+      stats.byType[policy.type] = (stats.byType[policy.type] || 0) + 1;
+    });
+    
+    // Group by scope
+    policies.forEach(policy => {
+      stats.byScope[policy.scope] = (stats.byScope[policy.scope] || 0) + 1;
+    });
+    
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    console.error('Error getting policy stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting policy statistics'
+    });
+  }
+});
+
 module.exports = router;

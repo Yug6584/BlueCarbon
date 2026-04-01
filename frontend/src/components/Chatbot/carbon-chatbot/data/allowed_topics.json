@@ -1,0 +1,26 @@
+{
+  "blue_carbon_keywords": [
+    "blue carbon", "carbon sequestration", "carbon storage", "carbon cycle",
+    "mangrove", "mangroves", "seagrass", "salt marsh", "saltmarsh", "wetland",
+    "coastal ecosystem", "marine ecosystem", "tidal wetland", "kelp forest",
+    "restoration", "conservation", "protection", "management", "monitoring",
+    "climate change", "climate mitigation", "greenhouse gas", "emissions",
+    "methodology", "protocol", "standard", "framework", "guideline",
+    "biodiversity", "habitat", "species", "flora", "fauna",
+    "policy", "governance", "regulation", "compliance", "certification",
+    "carbon credit", "carbon market", "offset", "trading", "finance",
+    "measurement", "assessment", "evaluation", "analysis", "research",
+    "sustainability", "environmental", "ecological", "marine", "coastal",
+    "photosynthesis", "decomposition", "sediment", "soil", "biomass",
+    "restoration techniques", "planting", "nursery", "propagation",
+    "water quality", "salinity", "tidal", "intertidal", "subtidal",
+    "REDD+", "NDC", "Paris Agreement", "UNFCCC", "IPCC",
+    "verification", "validation", "MRV", "reporting", "transparency"
+  ],
+  "allowed_domains": [
+    "environmental science", "marine biology", "climate science",
+    "conservation biology", "ecosystem management", "carbon markets",
+    "policy and governance", "restoration ecology", "coastal management"
+  ],
+  "minimum_similarity_threshold": 0.3
+}

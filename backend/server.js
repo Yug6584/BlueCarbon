@@ -109,6 +109,8 @@ app.use('/api/company-dashboard', require('./routes/company-dashboard'));
 app.use('/api/trading', require('./routes/trading'));
 app.use('/api/password', require('./routes/password-reset'));
 app.use('/api/policies', require('./routes/policy-management'));
+app.use('/api/compliance', require('./routes/compliance'));
+app.use('/api/projects', require('./routes/company-dashboard')); // Projects route uses company-dashboard
 
 
 // Health check endpoint

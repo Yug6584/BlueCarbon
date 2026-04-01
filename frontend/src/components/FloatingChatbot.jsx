@@ -1,0 +1,1165 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Box,
+  Fab,
+  Paper,
+  IconButton,
+  TextField,
+  Typography,
+  Avatar,
+  Divider,
+  CircularProgress,
+  Tooltip,
+  Chip,
+  Button,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListItemIcon,
+  Badge,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert
+} from '@mui/material';
+import {
+  Chat as ChatIcon,
+  Close as CloseIcon,
+  Send as SendIcon,
+  SmartToy as BotIcon,
+  Person as PersonIcon,
+  Refresh as RefreshIcon,
+  AttachFile as AttachFileIcon,
+  History as HistoryIcon,
+  Delete as DeleteIcon,
+  MoreVert as MoreVertIcon,
+  Translate as TranslateIcon,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Download as DownloadIcon,
+  Settings as SettingsIcon,
+  Minimize as MinimizeIcon
+} from '@mui/icons-material';
+import { blueCarbon } from '../theme/colors';
+
+const FloatingChatbot = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [chatbotStatus, setChatbotStatus] = useState('checking');
+  const [chatHistory, setChatHistory] = useState([]);
+  const [currentChatId, setCurrentChatId] = useState(null);
+  const [showHistory, setShowHistory] = useState(true);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState({
+    autoScroll: true,
+    soundEnabled: false,
+    showTimestamps: true,
+    compactMode: false,
+    language: 'en'
+  });
+  
+  const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const CHATBOT_API_URL = 'http://localhost:5000';
+
+  // Check if chatbot is running
+  useEffect(() => {
+    checkChatbotStatus();
+    loadChatHistory();
+  }, []);
+
+  const checkChatbotStatus = async () => {
+    try {
+      const response = await fetch(`${CHATBOT_API_URL}/health`, {
+        method: 'GET',
+        timeout: 3000
+      });
+      if (response.ok) {
+        setChatbotStatus('online');
+      } else {
+        setChatbotStatus('offline');
+      }
+    } catch (error) {
+      setChatbotStatus('offline');
+    }
+  };
+
+  const loadChatHistory = async () => {
+    try {
+      const response = await fetch(`${CHATBOT_API_URL}/chat-history`);
+      if (response.ok) {
+        const data = await response.json();
+        setChatHistory(data.chats || []);
+      }
+    } catch (error) {
+      console.log('Could not load chat history');
+    }
+  };
+
+  useEffect(() => {
+    if (settings.autoScroll) {
+      scrollToBottom();
+    }
+  }, [messages, settings.autoScroll]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleToggleChat = () => {
+    setIsOpen(!isOpen);
+    setIsMinimized(false);
+    if (!isOpen && messages.length === 0) {
+      startNewChat();
+    }
+  };
+
+  const startNewChat = () => {
+    const welcomeMessage = {
+      type: 'bot',
+      text: '👋 Hello! I\'m your **BlueCarbon AI Assistant**.\n\nI can help you with:\n\n🌊 **Blue Carbon Projects** - Information and guidance\n💰 **Carbon Credits** - Calculations and pricing\n📋 **Regulations** - Environmental compliance\n📄 **Documentation** - Project requirements\n🌱 **Best Practices** - Restoration techniques\n\nHow can I assist you today?',
+      timestamp: new Date()
+    };
+    setMessages([welcomeMessage]);
+    setCurrentChatId('chat_' + Date.now());
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+
+    const userMessage = {
+      type: 'user',
+      text: inputMessage,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${CHATBOT_API_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: inputMessage,
+          session_id: currentChatId || 'company_panel_' + Date.now()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Chatbot service unavailable');
+      }
+
+      const data = await response.json();
+
+      const botMessage = {
+        type: 'bot',
+        text: data.response || data.message || 'I apologize, but I couldn\'t process that request.',
+        sources: data.sources || [],
+        images: data.images || [],
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+      loadChatHistory(); // Refresh history
+    } catch (error) {
+      console.error('Chatbot error:', error);
+      const errorMessage = {
+        type: 'bot',
+        text: '⚠️ Connection error. Please ensure the chatbot service is running.\n\n**To start the service:**\n```\npython app.py\n```\nin the carbon-chatbot folder.',
+        timestamp: new Date(),
+        isError: true
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      setChatbotStatus('offline');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a PDF file');
+      return;
+    }
+
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${CHATBOT_API_URL}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      const botMessage = {
+        type: 'bot',
+        text: `✅ **Successfully uploaded "${file.name}"**\n\nYou can now ask questions about this document!`,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      const errorMessage = {
+        type: 'bot',
+        text: '❌ Failed to upload file. Please try again.',
+        timestamp: new Date(),
+        isError: true
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLoadChat = async (chatId) => {
+    try {
+      const response = await fetch(`${CHATBOT_API_URL}/chat-history/${chatId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data.messages || []);
+        setCurrentChatId(chatId);
+      }
+    } catch (error) {
+      console.error('Failed to load chat');
+    }
+  };
+
+  const handleDeleteChat = async (chatId) => {
+    try {
+      await fetch(`${CHATBOT_API_URL}/chat-history/${chatId}`, {
+        method: 'DELETE'
+      });
+      loadChatHistory();
+      if (currentChatId === chatId) {
+        startNewChat();
+      }
+    } catch (error) {
+      console.error('Failed to delete chat');
+    }
+    setDeleteDialogOpen(false);
+  };
+
+  const formatMessageText = (text) => {
+    // Simple markdown-like formatting
+    return text
+      .split('\n')
+      .map((line, i) => {
+        // Bold
+        line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Code blocks
+        line = line.replace(/```(.*?)```/g, '<code>$1</code>');
+        // Bullets
+        if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
+          line = '<li>' + line.substring(1) + '</li>';
+        }
+        return line;
+      })
+      .join('<br/>');
+  };
+
+  return (
+    <>
+      {/* Backdrop when chat is open */}
+      {isOpen && !isMinimized && (
+        <Box
+          onClick={handleToggleChat}
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9997,
+            animation: 'fadeIn 0.3s ease',
+            '@keyframes fadeIn': {
+              from: { opacity: 0 },
+              to: { opacity: 1 }
+            }
+          }}
+        />
+      )}
+
+      {/* Floating Action Button */}
+      <Tooltip title={chatbotStatus === 'offline' ? 'Chatbot Offline' : 'Open AI Assistant'}>
+        <Fab
+          color="primary"
+          aria-label="chat"
+          onClick={handleToggleChat}
+          sx={{
+            position: 'fixed',
+            bottom: 32,
+            right: 32,
+            zIndex: 9999,
+            background: chatbotStatus === 'offline' 
+              ? 'linear-gradient(135deg, #666 0%, #999 100%)'
+              : blueCarbon.gradients.oceanDepth,
+            '&:hover': {
+              background: chatbotStatus === 'offline'
+                ? 'linear-gradient(135deg, #555 0%, #888 100%)'
+                : blueCarbon.gradients.shallowWater,
+              transform: 'scale(1.1)',
+            },
+            boxShadow: `0 8px 20px ${blueCarbon.alpha.oceanBlue[40]}`,
+            transition: 'all 0.3s ease',
+          }}
+        >
+          <Badge
+            badgeContent={chatbotStatus === 'online' ? '●' : '●'}
+            color={chatbotStatus === 'online' ? 'success' : 'error'}
+            sx={{
+              '& .MuiBadge-badge': {
+                right: -3,
+                top: 3,
+                border: '2px solid white',
+                padding: '0 4px',
+              }
+            }}
+          >
+            {isOpen ? <CloseIcon /> : <ChatIcon />}
+          </Badge>
+        </Fab>
+      </Tooltip>
+
+      {/* Chat Window */}
+      {isOpen && (
+        <Paper
+          elevation={16}
+          sx={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: isMinimized 
+              ? 'translate(-50%, 100vh)' 
+              : 'translate(-50%, -50%)',
+            width: { xs: 'calc(100vw - 32px)', sm: 800, md: 900 },
+            height: { xs: 'calc(100vh - 100px)', sm: 600, md: 650 },
+            maxHeight: 'calc(100vh - 100px)',
+            zIndex: 9998,
+            display: 'flex',
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: '#fff',
+            boxShadow: `0 20px 60px ${blueCarbon.alpha.deepOcean[50]}`,
+            transition: 'all 0.3s ease',
+            border: `2px solid ${blueCarbon.alpha.oceanBlue[30]}`,
+            animation: 'slideUp 0.3s ease',
+            '@keyframes slideUp': {
+              from: { 
+                opacity: 0,
+                transform: 'translate(-50%, -45%)'
+              },
+              to: { 
+                opacity: 1,
+                transform: 'translate(-50%, -50%)'
+              }
+            }
+          }}
+        >
+          {/* Sidebar - Chat History */}
+          {showHistory && (
+            <Box
+              sx={{
+                width: { xs: 0, sm: 240, md: 280 },
+                display: { xs: 'none', sm: 'flex' },
+                background: blueCarbon.gradients.lightOcean,
+                borderRight: `1px solid ${blueCarbon.alpha.oceanBlue[20]}`,
+                flexDirection: 'column',
+                transition: 'width 0.3s ease'
+              }}
+            >
+              <Box sx={{ 
+                p: 2, 
+                borderBottom: `1px solid ${blueCarbon.alpha.oceanBlue[20]}`,
+                background: 'white'
+              }}>
+                <Typography variant="subtitle1" sx={{ 
+                  fontWeight: 600, 
+                  color: blueCarbon.deepOcean,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  fontSize: '0.95rem'
+                }}>
+                  <HistoryIcon fontSize="small" /> Chat History
+                </Typography>
+              </Box>
+              
+              <Box sx={{ p: 1.5 }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  startIcon={<RefreshIcon />}
+                  onClick={startNewChat}
+                  sx={{
+                    background: blueCarbon.gradients.oceanDepth,
+                    py: 1,
+                    '&:hover': {
+                      background: blueCarbon.gradients.shallowWater,
+                    }
+                  }}
+                >
+                  New Chat
+                </Button>
+              </Box>
+
+              <List sx={{ flex: 1, overflowY: 'auto', px: 1, py: 0 }}>
+                {chatHistory.length === 0 ? (
+                  <Box sx={{ p: 2, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No chat history yet
+                    </Typography>
+                  </Box>
+                ) : (
+                  chatHistory.map((chat, index) => (
+                    <ListItem
+                      key={index}
+                      disablePadding
+                      sx={{ mb: 0.5 }}
+                      secondaryAction={
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          onClick={() => {
+                            setChatToDelete(chat.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                          sx={{
+                            opacity: 0.6,
+                            '&:hover': {
+                              opacity: 1,
+                              color: 'error.main'
+                            }
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemButton
+                        selected={currentChatId === chat.id}
+                        onClick={() => handleLoadChat(chat.id)}
+                        sx={{
+                          borderRadius: 2,
+                          '&.Mui-selected': {
+                            background: blueCarbon.gradients.cardOcean,
+                            borderLeft: `3px solid ${blueCarbon.oceanBlue}`
+                          },
+                          '&:hover': {
+                            background: blueCarbon.alpha.oceanBlue[10]
+                          }
+                        }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 36 }}>
+                          <ChatIcon sx={{ color: blueCarbon.oceanBlue, fontSize: 20 }} />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={chat.title || 'Chat ' + (index + 1)}
+                          secondary={new Date(chat.timestamp).toLocaleDateString()}
+                          primaryTypographyProps={{
+                            fontSize: '0.85rem',
+                            fontWeight: 500,
+                            noWrap: true
+                          }}
+                          secondaryTypographyProps={{
+                            fontSize: '0.7rem'
+                          }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  ))
+                )}
+              </List>
+            </Box>
+          )}
+
+          {/* Main Chat Area */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Header */}
+            <Box
+              sx={{
+                background: blueCarbon.gradients.oceanDepth,
+                color: 'white',
+                p: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: `0 4px 12px ${blueCarbon.alpha.deepOcean[30]}`
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar 
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    width: 48,
+                    height: 48
+                  }}
+                >
+                  <BotIcon sx={{ fontSize: 28 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                    BlueCarbon AI Assistant
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: chatbotStatus === 'online' ? '#4caf50' : '#f44336',
+                        animation: chatbotStatus === 'online' ? 'pulse 2s infinite' : 'none',
+                        '@keyframes pulse': {
+                          '0%, 100%': { opacity: 1 },
+                          '50%': { opacity: 0.5 }
+                        }
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                      {chatbotStatus === 'online' ? 'Online' : 'Offline'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+              
+              <Box>
+                <Tooltip title="Settings">
+                  <IconButton 
+                    size="small" 
+                    onClick={() => setSettingsOpen(true)} 
+                    sx={{ color: 'white', mr: 1 }}
+                  >
+                    <SettingsIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={showHistory ? 'Hide History' : 'Show History'}>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => setShowHistory(!showHistory)} 
+                    sx={{ color: 'white', mr: 1 }}
+                  >
+                    <HistoryIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Minimize">
+                  <IconButton 
+                    size="small" 
+                    onClick={() => setIsMinimized(!isMinimized)} 
+                    sx={{ color: 'white', mr: 1 }}
+                  >
+                    <MinimizeIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Close">
+                  <IconButton 
+                    size="small" 
+                    onClick={handleToggleChat} 
+                    sx={{ color: 'white' }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
+
+            {/* Status Alert */}
+            {chatbotStatus === 'offline' && (
+              <Alert 
+                severity="warning" 
+                sx={{ 
+                  m: 2, 
+                  borderRadius: 2,
+                  background: blueCarbon.gradients.lightForest
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  ⚠️ Chatbot service is offline
+                </Typography>
+                <Typography variant="caption">
+                  Run: <code style={{ 
+                    background: 'rgba(0,0,0,0.1)', 
+                    padding: '2px 6px', 
+                    borderRadius: 4 
+                  }}>python app.py</code> in carbon-chatbot folder
+                </Typography>
+              </Alert>
+            )}
+
+            {/* Messages Area */}
+            <Box
+              sx={{
+                flex: 1,
+                overflowY: 'auto',
+                p: 3,
+                background: `linear-gradient(180deg, ${blueCarbon.alpha.oceanBlue[5]} 0%, ${blueCarbon.alpha.aqua[5]} 100%)`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2
+              }}
+            >
+              {messages.map((message, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
+                    gap: 1.5,
+                    animation: 'slideIn 0.3s ease',
+                    '@keyframes slideIn': {
+                      from: { opacity: 0, transform: 'translateY(10px)' },
+                      to: { opacity: 1, transform: 'translateY(0)' }
+                    }
+                  }}
+                >
+                  {message.type === 'bot' && (
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: blueCarbon.oceanBlue,
+                        width: 36,
+                        height: 36,
+                        boxShadow: `0 2px 8px ${blueCarbon.alpha.oceanBlue[30]}`
+                      }}
+                    >
+                      <BotIcon fontSize="small" />
+                    </Avatar>
+                  )}
+                  
+                  <Box sx={{ maxWidth: '70%' }}>
+                    <Paper
+                      elevation={message.type === 'user' ? 3 : 1}
+                      sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        background: message.type === 'user' 
+                          ? blueCarbon.gradients.oceanDepth
+                          : message.isError
+                          ? '#ffebee'
+                          : 'white',
+                        color: message.type === 'user' ? 'white' : blueCarbon.deepOcean,
+                        boxShadow: message.type === 'user'
+                          ? `0 4px 12px ${blueCarbon.alpha.oceanBlue[30]}`
+                          : `0 2px 8px ${blueCarbon.alpha.deepOcean[10]}`,
+                        ...(message.isError && {
+                          borderLeft: `4px solid #f44336`
+                        })
+                      }}
+                    >
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          whiteSpace: 'pre-wrap',
+                          lineHeight: 1.6,
+                          '& strong': { fontWeight: 600 },
+                          '& code': {
+                            background: message.type === 'user' 
+                              ? 'rgba(255,255,255,0.2)'
+                              : blueCarbon.alpha.oceanBlue[10],
+                            padding: '2px 6px',
+                            borderRadius: 1,
+                            fontFamily: 'monospace'
+                          }
+                        }}
+                        dangerouslySetInnerHTML={{ __html: formatMessageText(message.text) }}
+                      />
+                      
+                      {/* Images */}
+                      {message.images && message.images.length > 0 && (
+                        <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          {message.images.map((img, i) => (
+                            <Box
+                              key={i}
+                              component="img"
+                              src={img}
+                              alt={`Result ${i + 1}`}
+                              sx={{
+                                width: 120,
+                                height: 120,
+                                objectFit: 'cover',
+                                borderRadius: 2,
+                                cursor: 'pointer',
+                                transition: 'transform 0.2s',
+                                '&:hover': {
+                                  transform: 'scale(1.05)'
+                                }
+                              }}
+                              onClick={() => window.open(img, '_blank')}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                      
+                      {/* Sources */}
+                      {message.sources && message.sources.length > 0 && (
+                        <Box sx={{ mt: 1.5, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                          {message.sources.slice(0, 3).map((source, i) => (
+                            <Chip
+                              key={i}
+                              icon={<LinkIcon fontSize="small" />}
+                              label={source.title || `Source ${i + 1}`}
+                              size="small"
+                              onClick={() => source.url && window.open(source.url, '_blank')}
+                              sx={{
+                                background: message.type === 'user'
+                                  ? 'rgba(255,255,255,0.2)'
+                                  : blueCarbon.gradients.lightOcean,
+                                color: message.type === 'user' ? 'white' : blueCarbon.deepOcean,
+                                '&:hover': {
+                                  background: message.type === 'user'
+                                    ? 'rgba(255,255,255,0.3)'
+                                    : blueCarbon.gradients.cardOcean,
+                                }
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                      
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          opacity: 0.7, 
+                          display: 'block', 
+                          mt: 1,
+                          fontSize: '0.7rem'
+                        }}
+                      >
+                        {message.timestamp.toLocaleTimeString()}
+                      </Typography>
+                    </Paper>
+                  </Box>
+                  
+                  {message.type === 'user' && (
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: blueCarbon.forest,
+                        width: 36,
+                        height: 36,
+                        boxShadow: `0 2px 8px ${blueCarbon.alpha.forest[30]}`
+                      }}
+                    >
+                      <PersonIcon fontSize="small" />
+                    </Avatar>
+                  )}
+                </Box>
+              ))}
+              
+              {isLoading && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Avatar sx={{ bgcolor: blueCarbon.oceanBlue, width: 36, height: 36 }}>
+                    <BotIcon fontSize="small" />
+                  </Avatar>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      background: 'white',
+                      boxShadow: `0 2px 8px ${blueCarbon.alpha.deepOcean[10]}`
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <CircularProgress size={20} sx={{ color: blueCarbon.oceanBlue }} />
+                      <Typography variant="body2" color="text.secondary">
+                        Thinking...
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              )}
+              <div ref={messagesEndRef} />
+            </Box>
+
+            {/* Input Area */}
+            <Box 
+              sx={{ 
+                p: 2.5, 
+                background: 'white',
+                borderTop: `2px solid ${blueCarbon.alpha.oceanBlue[20]}`,
+                boxShadow: `0 -4px 12px ${blueCarbon.alpha.deepOcean[5]}`
+              }}
+            >
+              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".pdf"
+                  style={{ display: 'none' }}
+                />
+                
+                <Tooltip title="Upload PDF Document">
+                  <IconButton
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading || chatbotStatus === 'offline'}
+                    sx={{
+                      background: blueCarbon.gradients.lightOcean,
+                      '&:hover': {
+                        background: blueCarbon.gradients.cardOcean,
+                      }
+                    }}
+                  >
+                    <AttachFileIcon sx={{ color: blueCarbon.oceanBlue }} />
+                  </IconButton>
+                </Tooltip>
+                
+                <TextField
+                  fullWidth
+                  multiline
+                  maxRows={4}
+                  placeholder="Ask me anything about blue carbon projects..."
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  disabled={isLoading || chatbotStatus === 'offline'}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 3,
+                      background: blueCarbon.alpha.oceanBlue[5],
+                      '&:hover': {
+                        background: blueCarbon.alpha.oceanBlue[10],
+                      },
+                      '&.Mui-focused': {
+                        background: 'white',
+                        boxShadow: `0 0 0 2px ${blueCarbon.alpha.oceanBlue[30]}`
+                      }
+                    }
+                  }}
+                />
+                
+                <Tooltip title="Send Message">
+                  <span>
+                    <IconButton
+                      onClick={handleSendMessage}
+                      disabled={!inputMessage.trim() || isLoading || chatbotStatus === 'offline'}
+                      sx={{
+                        background: blueCarbon.gradients.oceanDepth,
+                        color: 'white',
+                        width: 48,
+                        height: 48,
+                        '&:hover': {
+                          background: blueCarbon.gradients.shallowWater,
+                          transform: 'scale(1.05)',
+                        },
+                        '&:disabled': {
+                          background: '#e0e0e0',
+                          color: '#9e9e9e'
+                        },
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <SendIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Box>
+              
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  display: 'block', 
+                  mt: 1, 
+                  color: 'text.secondary',
+                  textAlign: 'center'
+                }}
+              >
+                Press Enter to send • Shift+Enter for new line
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Settings Dialog */}
+      <Dialog 
+        open={settingsOpen} 
+        onClose={() => setSettingsOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          background: blueCarbon.gradients.oceanDepth,
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <SettingsIcon /> Chatbot Settings
+        </DialogTitle>
+        <DialogContent sx={{ mt: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            
+            {/* Auto Scroll Setting */}
+            <Box sx={{ 
+              p: 2,
+              borderRadius: 2,
+              background: blueCarbon.alpha.oceanBlue[5],
+              border: `1px solid ${blueCarbon.alpha.oceanBlue[20]}`
+            }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600} color={blueCarbon.deepOcean}>
+                    Auto Scroll
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Automatically scroll to new messages
+                  </Typography>
+                </Box>
+                <Button
+                  variant={settings.autoScroll ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => setSettings({...settings, autoScroll: !settings.autoScroll})}
+                  sx={{
+                    minWidth: 80,
+                    background: settings.autoScroll ? blueCarbon.gradients.oceanDepth : 'transparent'
+                  }}
+                >
+                  {settings.autoScroll ? 'ON' : 'OFF'}
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Show Timestamps Setting */}
+            <Box sx={{ 
+              p: 2,
+              borderRadius: 2,
+              background: blueCarbon.alpha.oceanBlue[5],
+              border: `1px solid ${blueCarbon.alpha.oceanBlue[20]}`
+            }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600} color={blueCarbon.deepOcean}>
+                    Show Timestamps
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Display time on each message
+                  </Typography>
+                </Box>
+                <Button
+                  variant={settings.showTimestamps ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => setSettings({...settings, showTimestamps: !settings.showTimestamps})}
+                  sx={{
+                    minWidth: 80,
+                    background: settings.showTimestamps ? blueCarbon.gradients.oceanDepth : 'transparent'
+                  }}
+                >
+                  {settings.showTimestamps ? 'ON' : 'OFF'}
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Compact Mode Setting */}
+            <Box sx={{ 
+              p: 2,
+              borderRadius: 2,
+              background: blueCarbon.alpha.oceanBlue[5],
+              border: `1px solid ${blueCarbon.alpha.oceanBlue[20]}`
+            }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600} color={blueCarbon.deepOcean}>
+                    Compact Mode
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Reduce spacing between messages
+                  </Typography>
+                </Box>
+                <Button
+                  variant={settings.compactMode ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => setSettings({...settings, compactMode: !settings.compactMode})}
+                  sx={{
+                    minWidth: 80,
+                    background: settings.compactMode ? blueCarbon.gradients.oceanDepth : 'transparent'
+                  }}
+                >
+                  {settings.compactMode ? 'ON' : 'OFF'}
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Sound Notifications Setting */}
+            <Box sx={{ 
+              p: 2,
+              borderRadius: 2,
+              background: blueCarbon.alpha.oceanBlue[5],
+              border: `1px solid ${blueCarbon.alpha.oceanBlue[20]}`
+            }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600} color={blueCarbon.deepOcean}>
+                    Sound Notifications
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Play sound for new messages
+                  </Typography>
+                </Box>
+                <Button
+                  variant={settings.soundEnabled ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => setSettings({...settings, soundEnabled: !settings.soundEnabled})}
+                  sx={{
+                    minWidth: 80,
+                    background: settings.soundEnabled ? blueCarbon.gradients.oceanDepth : 'transparent'
+                  }}
+                >
+                  {settings.soundEnabled ? 'ON' : 'OFF'}
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Clear Chat History */}
+            <Box sx={{ 
+              p: 2,
+              borderRadius: 2,
+              background: blueCarbon.alpha.forest[5],
+              border: `1px solid ${blueCarbon.alpha.forest[20]}`
+            }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600} color={blueCarbon.deepOcean}>
+                    Clear All History
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Delete all chat conversations
+                  </Typography>
+                </Box>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color="error"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete all chat history?')) {
+                      setChatHistory([]);
+                      startNewChat();
+                      alert('Chat history cleared!');
+                    }
+                  }}
+                  sx={{ minWidth: 80 }}
+                >
+                  Clear
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Service Status */}
+            <Box sx={{ 
+              p: 2,
+              borderRadius: 2,
+              background: chatbotStatus === 'online' 
+                ? blueCarbon.alpha.forest[10]
+                : blueCarbon.alpha.oceanBlue[10],
+              border: `1px solid ${chatbotStatus === 'online' 
+                ? blueCarbon.alpha.forest[30]
+                : blueCarbon.alpha.oceanBlue[30]}`
+            }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600} color={blueCarbon.deepOcean}>
+                    Service Status
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Chatbot backend connection
+                  </Typography>
+                </Box>
+                <Chip
+                  label={chatbotStatus === 'online' ? 'Online' : 'Offline'}
+                  color={chatbotStatus === 'online' ? 'success' : 'error'}
+                  size="small"
+                  icon={
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: chatbotStatus === 'online' ? '#4caf50' : '#f44336',
+                        animation: chatbotStatus === 'online' ? 'pulse 2s infinite' : 'none',
+                        '@keyframes pulse': {
+                          '0%, 100%': { opacity: 1 },
+                          '50%': { opacity: 0.5 }
+                        }
+                      }}
+                    />
+                  }
+                />
+              </Box>
+              {chatbotStatus === 'offline' && (
+                <Alert severity="warning" sx={{ mt: 1.5 }}>
+                  <Typography variant="caption">
+                    Run <code>python app.py</code> in carbon-chatbot folder
+                  </Typography>
+                </Alert>
+              )}
+            </Box>
+
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, background: blueCarbon.alpha.oceanBlue[5] }}>
+          <Button 
+            onClick={() => setSettingsOpen(false)}
+            variant="contained"
+            sx={{
+              background: blueCarbon.gradients.oceanDepth,
+              '&:hover': {
+                background: blueCarbon.gradients.shallowWater
+              }
+            }}
+          >
+            Done
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Chat?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this chat? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={() => handleDeleteChat(chatToDelete)} 
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
+export default FloatingChatbot;

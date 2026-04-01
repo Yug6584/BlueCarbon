@@ -26,6 +26,7 @@ import {
   Alert,
   Snackbar,
   Grid,
+  Menu,
 } from '@mui/material';
 import {
   Policy,
@@ -48,6 +49,8 @@ const PolicyManagement = () => {
   const [viewDialog, setViewDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState(null);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -837,31 +840,51 @@ Blue Carbon Benefits:
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleExportPolicies = () => {
-    const dataStr = JSON.stringify(policies, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `blue-carbon-policies-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+  const handleExportPolicies = (format = 'json') => {
+    const url = `http://localhost:8000/api/policies/export/${format}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `indian-blue-carbon-policies.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     
     setSnackbar({ 
       open: true, 
-      message: 'Policies exported successfully!', 
+      message: `Policies exported as ${format.toUpperCase()} successfully!`, 
       severity: 'success' 
     });
   };
 
-  const handleRefreshPolicies = () => {
-    fetchPolicies();
-    setSnackbar({ 
-      open: true, 
-      message: 'Policies refreshed from server!', 
-      severity: 'info' 
-    });
+  const handleRefreshPolicies = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/policies/refresh', {
+        method: 'POST'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        fetchPolicies();
+        setSnackbar({ 
+          open: true, 
+          message: `Policies refreshed successfully! Loaded ${data.count} policies.`, 
+          severity: 'success' 
+        });
+      } else {
+        setSnackbar({ 
+          open: true, 
+          message: 'Failed to refresh policies', 
+          severity: 'error' 
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing policies:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Error refreshing policies', 
+        severity: 'error' 
+      });
+    }
   };
 
   const getStatusColor = (status) => {
@@ -906,11 +929,26 @@ Blue Carbon Benefits:
             <Button
               variant="outlined"
               startIcon={<Download />}
-              onClick={handleExportPolicies}
+              onClick={(e) => setExportMenuAnchor(e.currentTarget)}
               size="small"
             >
               Export
             </Button>
+            <Menu
+              anchorEl={exportMenuAnchor}
+              open={Boolean(exportMenuAnchor)}
+              onClose={() => setExportMenuAnchor(null)}
+            >
+              <MenuItem onClick={() => { handleExportPolicies('json'); setExportMenuAnchor(null); }}>
+                Export as JSON
+              </MenuItem>
+              <MenuItem onClick={() => { handleExportPolicies('csv'); setExportMenuAnchor(null); }}>
+                Export as CSV
+              </MenuItem>
+              <MenuItem onClick={() => { handleExportPolicies('pdf'); setExportMenuAnchor(null); }}>
+                Export as Text/PDF
+              </MenuItem>
+            </Menu>
             <Button
               variant="contained"
               startIcon={<Add />}

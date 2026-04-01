@@ -3,6 +3,85 @@ const { authenticateToken } = require('../middleware/auth');
 const companyDatabaseManager = require('../services/companyDatabaseManager');
 const router = express.Router();
 
+// Update company profile
+router.put('/profile', authenticateToken, (req, res) => {
+  if (req.user.panel !== 'company') {
+    return res.status(403).json({
+      success: false,
+      message: 'Only company users can update profile'
+    });
+  }
+
+  const db = companyDatabaseManager.getCompanyDatabase(req.user.userId);
+  
+  if (!db) {
+    return res.status(500).json({
+      success: false,
+      message: 'Company database not found'
+    });
+  }
+
+  const { companyName, industry, phone, address, website, description, logo } = req.body;
+
+  // Check if profile exists
+  db.get('SELECT * FROM company_profile WHERE user_id = ?', [req.user.userId], (err, profile) => {
+    if (err) {
+      db.close();
+      return res.status(500).json({
+        success: false,
+        message: 'Database error'
+      });
+    }
+
+    if (profile) {
+      // Update existing profile
+      db.run(
+        `UPDATE company_profile 
+         SET company_name = ?, industry = ?, phone = ?, address = ?, website = ?, description = ?, logo_path = ?, updated_at = CURRENT_TIMESTAMP 
+         WHERE user_id = ?`,
+        [companyName, industry, phone, address, website, description, logo, req.user.userId],
+        function(err) {
+          db.close();
+          
+          if (err) {
+            return res.status(500).json({
+              success: false,
+              message: 'Error updating profile'
+            });
+          }
+
+          res.json({
+            success: true,
+            message: 'Profile updated successfully'
+          });
+        }
+      );
+    } else {
+      // Create new profile
+      db.run(
+        `INSERT INTO company_profile (user_id, company_name, industry, phone, address, website, description, logo_path) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [req.user.userId, companyName, industry, phone, address, website, description, logo],
+        function(err) {
+          db.close();
+          
+          if (err) {
+            return res.status(500).json({
+              success: false,
+              message: 'Error creating profile'
+            });
+          }
+
+          res.json({
+            success: true,
+            message: 'Profile created successfully'
+          });
+        }
+      );
+    }
+  });
+});
+
 // Get company dashboard data
 router.get('/dashboard', authenticateToken, (req, res) => {
   // Only company users can access their dashboard data
@@ -197,6 +276,74 @@ router.get('/projects/by-id/:projectId', authenticateToken, (req, res) => {
       project: project
     });
   });
+});
+
+// Submit new project (alias for create)
+router.post('/submit', authenticateToken, (req, res) => {
+  if (req.user.panel !== 'company') {
+    return res.status(403).json({
+      success: false,
+      message: 'Only company users can submit projects'
+    });
+  }
+
+  const { 
+    project_name, 
+    description, 
+    project_type, 
+    area_hectares, 
+    location, 
+    status, 
+    start_date, 
+    end_date, 
+    budget, 
+    expected_credits,
+    coordinates,
+    additional_data
+  } = req.body;
+
+  if (!project_name || !project_type || !area_hectares || !start_date || !end_date) {
+    return res.status(400).json({
+      success: false,
+      message: 'Project name, type, area, start date, and end date are required'
+    });
+  }
+
+  const db = companyDatabaseManager.getCompanyDatabase(req.user.userId);
+  
+  if (!db) {
+    return res.status(500).json({
+      success: false,
+      message: 'Company database not found'
+    });
+  }
+
+  // Generate unique project ID
+  const uniqueProjectId = companyDatabaseManager.generateProjectId();
+
+  db.run(
+    `INSERT INTO projects (project_id, project_name, description, project_type, area_hectares, location, status, start_date, end_date, budget, expected_credits, created_by) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [uniqueProjectId, project_name, description, project_type, area_hectares, location || JSON.stringify(coordinates), status || 'submitted', start_date, end_date, budget, expected_credits || 0, req.user.userId],
+    function(err) {
+      db.close();
+      
+      if (err) {
+        console.error('Error submitting project:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error submitting project'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Project submitted successfully',
+        projectId: this.lastID,
+        uniqueProjectId: uniqueProjectId
+      });
+    }
+  );
 });
 
 // Create new project

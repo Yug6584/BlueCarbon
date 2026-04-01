@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -18,7 +19,18 @@ import {
   IconButton,
   Tooltip,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Switch,
+  FormControlLabel,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import {
   Assessment,
@@ -33,6 +45,7 @@ import {
 } from '@mui/icons-material';
 
 const CompanyDashboard = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -176,7 +189,7 @@ const CompanyDashboard = () => {
           <Button
             variant="outlined"
             startIcon={<Settings />}
-            onClick={() => console.log('Settings clicked')}
+            onClick={() => navigate('/company/settings')}
           >
             Settings
           </Button>
@@ -425,6 +438,7 @@ const CompanyDashboard = () => {
           </Card>
         </Grid>
       </Grid>
+
     </Box>
   );
 };

@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BlueCarbon-LEDGER</title>
+    <link rel="icon" type="image/png"
+        href="{{ url_for('static', filename='assets/chatbot-logo-circular-favicon.png') }}">
+    <link rel="shortcut icon" type="image/png"
+        href="{{ url_for('static', filename='assets/chatbot-logo-circular-favicon.png') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ---------- Animations & Helpers (kept from original) ---------- */
+        .message-animation {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .typing-animation {
+            animation: pulse 1.5s infinite;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .upload-progress {
+            background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+            animation: progress-pulse 2s infinite;
+        }
+
+        @keyframes progress-pulse {
+
+            0%,
+            100% {
+                opacity: 0.8;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .translate-btn {
+            transition: all 0.2s ease;
+        }
+
+        .translate-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .source-card {
+            transition: all 0.2s ease;
+        }
+
+        .source-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ---------- Thinking Animation (Gemini-style) ---------- */
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 16px;
+            border: 1px solid #bae6fd;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+            animation: thinkingPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes thinkingPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+                transform: scale(1);
+            }
+
+            50% {
+                box-shadow: 0 6px 20px rgba(59, 130, 246, 0.2);
+                transform: scale(1.01);
+            }
+        }
+
+        .thinking-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #3b82f6;
+            animation: logoSpin 3s linear infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes logoSpin {
+            0% {
+                transform: rotate(0deg);
+                border-color: #3b82f6;
+            }
+
+            25% {
+                border-color: #8b5cf6;
+            }
+
+            50% {
+                transform: rotate(180deg);
+                border-color: #06b6d4;
+            }
+
+            75% {
+                border-color: #8b5cf6;
+            }
+
+            100% {
+                transform: rotate(360deg);
+                border-color: #3b82f6;
+            }
+        }
+
+        .thinking-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thinking-text {
+            flex: 1;
+            color: #1e40af;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .thinking-dots {
+            display: inline-flex;
+            gap: 4px;
+            margin-left: 4px;
+        }
+
+        .thinking-dots span {
+            width: 6px;
+            height: 6px;
+            background: #3b82f6;
+            border-radius: 50%;
+            animation: dotBounce 1.4s infinite ease-in-out;
+        }
+
+        .thinking-dots span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .thinking-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .thinking-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes dotBounce {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+
+            30% {
+                transform: translateY(-8px);
+                opacity: 1;
+            }
+        }
+
+        /* Processing animation (for file upload) */
+        .processing-indicator {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-color: #fbbf24;
+        }
+
+        .processing-indicator .thinking-logo {
+            border-color: #f59e0b;
+            animation: logoSpinFast 2s linear infinite;
+        }
+
+        @keyframes logoSpinFast {
+            0% {
+                transform: rotate(0deg) scale(1);
+            }
+
+            50% {
+                transform: rotate(180deg) scale(1.1);
+            }
+
+            100% {
+                transform: rotate(360deg) scale(1);
+            }
+        }
+
+        .processing-indicator .thinking-text {
+            color: #92400e;
+        }
+
+        .processing-indicator .thinking-dots span {
+            background: #f59e0b;
+        }
+
+        /* Success notification (file processed) */
+        .success-indicator {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-color: #6ee7b7;
+            animation: successPulse 0.6s ease-out;
+        }
+
+        @keyframes successPulse {
+            0% {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .success-indicator .thinking-logo {
+            border-color: #10b981;
+            animation: successCheck 0.6s ease-out;
+        }
+
+        @keyframes successCheck {
+
+            0%,
+            50% {
+                transform: scale(0.8);
+            }
+
+            70% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .success-indicator .thinking-text {
+            color: #065f46;
+        }
+
+        /* Charts & web images (kept) */
+        .charts-container {
+            margin: 16px 0;
+        }
+
+        .charts-header {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+
+        .charts-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .chart-item {
+            width: 100%;
+        }
+
+        .chart-wrapper {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .chart-image {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .chart-image:hover {
+            transform: scale(1.02);
+        }
+
+        .chart-caption {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .chart-meta {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: '';
+            }
+
+            40% {
+                content: '.';
+            }
+
+            60% {
+                content: '..';
+            }
+
+            80%,
+            100% {
+                content: '...';
+            }
+        }
+
+        .btn-action {
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-action:active {
+            transform: translateY(0);
+        }
+
+        /* Web Images Styling (kept) */
+        .web-images-container {
+            margin: 16px 0;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .web-images-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .web-images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .web-image-item {
+            position: relative;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .web-image-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .web-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            background: #f1f5f9;
+            display: block;
+        }
+
+        .web-image-loading {
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: loading-shimmer 1.5s infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        @keyframes loading-shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .web-image-error {
+            width: 100%;
+            height: 150px;
+            background: #fef2f2;
+            border: 2px dashed #fca5a5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #dc2626;
+            font-size: 12px;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .web-image-caption {
+            padding: 8px 12px;
+            background: white;
+        }
+
+        .web-image-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: #1e293b;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            max-height: 2.6em;
+        }
+
+        .web-image-source {
+            font-size: 10px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .web-image-relevance {
+            font-size: 10px;
+            color: #059669;
+            font-weight: 500;
+        }
+
+        .web-image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .web-image-modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .web-image-modal img {
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+            display: block;
+        }
+
+        .web-image-modal-info {
+            padding: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .web-image-modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .web-image-modal-source {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .web-image-modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        /* ---------- Responsive Chat Layout (new & important) ---------- */
+
+        /* top-level housekeeping */
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Sidebar width used on desktop */
+        .sidebar-width {
+            width: 280px;
+            min-width: 280px;
+        }
+
+        /* By default main-content will flow full width, but on desktop we'll subtract sidebar */
+        .main-content {
+            width: calc(100% - 280px);
+            transition: width 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Make chat messages area fill available space */
+        #chatMessages {
+            overflow-y: auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+            box-sizing: border-box;
+            flex: 1 1 auto;
+        }
+
+        /* Ensure the overall layout takes full height */
+        .main-wrapper {
+            height: 100vh;
+            height: 100dvh;
+            /* Dynamic viewport height for mobile browsers */
+            display: flex;
+            width: 100%;
+            max-width: 100vw;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar base styles */
+        .sidebar-width {
+            width: 280px;
+            flex-shrink: 0;
+        }
+
+        /* Main content base styles */
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            /* Allows flex item to shrink below content size */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Chat messages container */
+        #chatMessages {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Input container sticky at bottom for large screens (keeps natural flow) */
+        .input-area {
+            box-sizing: border-box;
+        }
+
+        /* ---------- Mobile behaviour (max-width: 768px) ---------- */
+        @media (max-width: 768px) {
+
+            /* Prevent horizontal scroll */
+            body {
+                overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Use a checkbox toggle to slide the sidebar in/out on mobile */
+            .sidebar-width {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                transform: translateX(-110%);
+                transition: transform 0.28s ease;
+                width: 85%;
+                max-width: 320px;
+                z-index: 60;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            }
+
+            /* main content should take full width on mobile */
+            .main-content {
+                width: 100% !important;
+                max-width: 100vw;
+            }
+
+            /* overlay (hidden by default) - will show when drawer checked */
+            .drawer-overlay {
+                display: none;
+            }
+
+            /* top bar: show hamburger */
+            .mobile-hamburger {
+                display: inline-flex !important;
+            }
+
+            /* Adjust top bar for mobile */
+            .main-content>div:first-child {
+                padding: 0.75rem 1rem;
+            }
+
+            .main-content>div:first-child h2 {
+                font-size: 1rem;
+                line-height: 1.25rem;
+            }
+
+            .main-content>div:first-child .text-sm {
+                font-size: 0.75rem;
+            }
+
+            /* adjust chatMessages padding for mobile */
+            #chatMessages {
+                padding: 1rem 0.75rem !important;
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+
+            /* Make messages fit mobile screen */
+            #chatMessages .max-w-4xl {
+                max-width: 100% !important;
+                padding: 0;
+            }
+
+            /* Message bubbles responsive */
+            #chatMessages .rounded-2xl {
+                max-width: 85%;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+
+            /* Welcome screen adjustments */
+            #chatMessages .text-center.py-12 {
+                padding-top: 2rem !important;
+                padding-bottom: 2rem !important;
+            }
+
+            #chatMessages .text-xl {
+                font-size: 1.125rem !important;
+            }
+
+            #chatMessages .text-gray-600 {
+                font-size: 0.875rem !important;
+            }
+
+            /* Quick action buttons grid */
+            #chatMessages .grid-cols-1.md\\:grid-cols-3 {
+                grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+                gap: 0.75rem !important;
+            }
+
+            /* enlarge input area touch targets */
+            textarea#messageInput {
+                min-height: 48px !important;
+                font-size: 16px !important;
+                /* Prevents zoom on iOS */
+                padding: 0.75rem !important;
+            }
+
+            /* Input area container */
+            .input-area,
+            .main-content>div:last-child {
+                padding: 0.75rem !important;
+            }
+
+            /* Send button positioning */
+            button#sendButton {
+                bottom: 0.5rem;
+                right: 0.5rem;
+                padding: 0.625rem !important;
+            }
+
+            /* File upload button */
+            button[onclick*="fileUpload"] {
+                padding: 0.625rem !important;
+            }
+
+            /* Source cards responsive */
+            .source-card {
+                font-size: 0.75rem !important;
+            }
+
+            /* Web images grid */
+            .web-images-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 0.5rem !important;
+            }
+
+            /* Charts responsive */
+            .charts-grid {
+                gap: 0.75rem !important;
+            }
+
+            .chart-wrapper {
+                padding: 0.75rem !important;
+            }
+
+            /* Action buttons */
+            .btn-action {
+                font-size: 0.75rem !important;
+                padding: 0.375rem 0.625rem !important;
+            }
+
+            /* when the drawer toggle is checked, slide sidebar in and show overlay */
+            #drawer-toggle:checked~.main-wrapper .sidebar-width {
+                transform: translateX(0);
+            }
+
+            #drawer-toggle:checked~.drawer-overlay {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.35);
+                z-index: 50;
+            }
+
+            /* Hide desktop-only elements */
+            .hidden-mobile {
+                display: none !important;
+            }
+        }
+
+        /* ---------- Small mobile (max-width: 480px) ---------- */
+        @media (max-width: 480px) {
+
+            /* Even tighter spacing */
+            #chatMessages {
+                padding: 0.75rem 0.5rem !important;
+            }
+
+            /* Smaller text */
+            body {
+                font-size: 14px;
+            }
+
+            /* Compact buttons */
+            button {
+                font-size: 0.875rem;
+            }
+
+            /* Single column for everything */
+            .grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* ---------- Desktop: ensure sidebar visible statically ---------- */
+        @media (min-width: 769px) {
+            .mobile-hamburger {
+                display: none;
+            }
+
+            .drawer-overlay {
+                display: none !important;
+            }
+        }
+
+        /* Slight polish for input and buttons */
+        textarea#messageInput {
+            transition: height 0.12s ease;
+        }
+
+        .sidebar-header img {
+            display: block;
+        }
+
+        /* small responsive tweaks for web images */
+        @media (max-width: 480px) {
+            .web-image {
+                height: 110px;
+            }
+
+            .web-image-loading,
+            .web-image-error {
+                height: 110px;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900">
+
+    <!-- Checkbox used to toggle drawer on mobile (pure CSS toggle) -->
+    <input type="checkbox" id="drawer-toggle" class="hidden" />
+
+    <!-- overlay label - clicking closes drawer -->
+    <label for="drawer-toggle" class="drawer-overlay hidden"></label>
+
+    <!-- MAIN WRAPPER -->
+    <div class="main-wrapper">
+
+        <!-- Sidebar -->
+        <aside class="sidebar-width bg-white border-r border-gray-200 flex flex-col">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden bg-white border-2 border-blue-200 shadow-sm">
+                        <img src="{{ url_for('static', filename='assets/chatbot logo.jpg') }}"
+                            alt="BlueCarbon-LEDGER Logo" class="w-full h-full object-cover"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="w-full h-full bg-blue-600 rounded-full flex items-center justify-center"
+                            style="display:none;">
+                            <i data-lucide="waves" class="w-5 h-5 text-white"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="font-semibold text-gray-900">BlueCarbon-LEDGER</h1>
+                        <p class="text-xs text-gray-500">Professional Assistant</p>
+                    </div>
+                </div>
+
+                <!-- New Chat Button -->
+                <button onclick="startNewChat()"
+                    class="w-full mt-3 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>New Chat</span>
+                </button>
+            </div>
+
+            <!-- Chat History -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Recent Chats</h3>
+                <div id="chatHistory" class="space-y-2">
+                    <!-- History items will be populated here -->
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="p-4 border-t border-gray-200">
+                <div id="systemStatus" class="text-xs text-gray-500">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <div id="statusDot" class="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span id="statusText">System Ready</span>
+                    </div>
+                    <div id="systemStats" class="text-xs text-gray-400">
+                        Loading stats...
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content flex flex-col">
+
+            <!-- Top Bar -->
+            <div class="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <!-- Hamburger (mobile) toggles the hidden checkbox -->
+                    <label for="drawer-toggle"
+                        class="mobile-hamburger mr-1 inline-flex items-center justify-center p-2 rounded-md hover:bg-gray-100 cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" viewBox="0 0 20 20"
+                            fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd"
+                                d="M3 5h14a1 1 0 010 2H3a1 1 0 010-2zm0 4h14a1 1 0 010 2H3a1 1 0 010-2zm0 4h14a1 1 0 010 2H3a1 1 0 010-2z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </label>
+
+                    <!-- Logo with 50% border-radius -->
+                    <div class="w-10 h-10 flex items-center justify-center overflow-hidden bg-white border-2 border-blue-200 shadow-sm flex-shrink-0"
+                        style="border-radius: 50%;">
+                        <img src="{{ url_for('static', filename='assets/chatbot logo.jpg') }}" alt="Logo"
+                            class="w-full h-full object-cover" style="border-radius: 50%;"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="w-full h-full bg-blue-600 flex items-center justify-center"
+                            style="display:none; border-radius: 50%;">
+                            <i data-lucide="waves" class="w-5 h-5 text-white"></i>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h2 class="font-semibold text-gray-900">Enhanced Blue Carbon AI Assistant</h2>
+                        <div class="text-sm text-green-600 font-medium">🚀Professional AI</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="exportChat()"
+                        class="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="clearChat()"
+                        class="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-6">
+                <!-- Welcome Message -->
+                <div class="max-w-4xl mx-auto">
+                    <div class="text-center py-12">
+                        <div
+                            class="w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden bg-white border-4 border-blue-100 shadow-lg">
+                            <img src="{{ url_for('static', filename='assets/chatbot logo.jpg') }}"
+                                alt="BlueCarbon-LEDGER Logo" class="w-full h-full object-cover scale-110"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="w-full h-full bg-blue-100 rounded-full flex items-center justify-center"
+                                style="display:none;">
+                                <i data-lucide="waves" class="w-12 h-12 text-blue-600"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Welcome to BlueCarbon-LEDGER AI</h3>
+                        <p class="text-gray-600 mb-6">Your professional assistant for blue carbon research and analysis
+                        </p>
+
+                        <!-- Quick Start Options -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                            <button onclick="askQuickQuestion('What are blue carbon ecosystems?')"
+                                class="p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all text-left">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="info" class="w-4 h-4 text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">Blue Carbon Basics</h4>
+                                        <p class="text-sm text-gray-500">Learn about coastal ecosystems</p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            <button onclick="askQuickQuestion('Analyze mangrove restoration methods')"
+                                class="p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all text-left">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">Analysis & Research</h4>
+                                        <p class="text-sm text-gray-500">Deep dive into methodologies</p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            <button onclick="askQuickQuestion('Summarize blue carbon best practices')"
+                                class="p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all text-left">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="book-open" class="w-4 h-4 text-orange-600"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">Summaries</h4>
+                                        <p class="text-sm text-gray-500">Concise knowledge extraction</p>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="bg-white border-t border-gray-200 p-4 input-area">
+                <div class="max-w-4xl mx-auto">
+                    <!-- Upload Progress (Hidden by default) -->
+                    <div id="uploadProgress" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
+                            <span class="text-sm text-blue-700">Processing PDF...</span>
+                            <div class="flex-1 bg-blue-200 rounded-full h-2">
+                                <div class="upload-progress h-2 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attached Files Display -->
+                    <div id="attachedFiles" class="hidden mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i>
+                                <span id="attachedFileName" class="text-sm font-medium text-blue-800"></span>
+                                <span id="attachedFileSize" class="text-xs text-blue-600"></span>
+                            </div>
+                            <button onclick="removeAttachedFile()" class="text-red-600 hover:text-red-800">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Input Container -->
+                    <div class="relative">
+                        <div class="flex items-end space-x-3">
+                            <!-- File Upload Button -->
+                            <input type="file" id="fileUpload" accept=".pdf" class="hidden" />
+                            <button onclick="document.getElementById('fileUpload').click()"
+                                class="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Upload PDF">
+                                <i data-lucide="paperclip" class="w-5 h-5"></i>
+                            </button>
+
+                            <!-- Message Input -->
+                            <div class="flex-1 relative">
+                                <textarea id="messageInput"
+                                    placeholder="Ask about blue carbon ecosystems, request analysis, or upload files for analysis..."
+                                    class="w-full resize-none border border-gray-300 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    rows="1" style="min-height: 48px; max-height: 120px;"></textarea>
+
+                                <!-- Send Button -->
+                                <button id="sendButton" onclick="sendMessage()"
+                                    class="absolute right-2 bottom-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Input Footer -->
+                        <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
+                            <span>Press Enter to send • Shift+Enter for new line</span>
+                            <div class="flex items-center space-x-4">
+                                <span id="responseTime" class="hidden"></span>
+                                <span id="typingIndicator" class="hidden">AI is thinking<span
+                                        class="loading-dots"></span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- END main-content -->
+
+    </div> <!-- END main-wrapper -->
+
+    <!-- Chart Modal -->
+    <div id="chartModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50"
+        onclick="closeChartModal()">
+        <div class="bg-white rounded-xl p-6 max-w-4xl max-h-[90vh] mx-4 overflow-auto"
+            onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="chartModalTitle" class="text-xl font-semibold text-gray-900">Chart</h3>
+                <button onclick="closeChartModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="text-center">
+                <img id="chartModalImage" src="" alt="Chart" class="max-w-full h-auto rounded-lg" />
+                <p id="chartModalCaption" class="text-sm text-gray-600 mt-3"></p>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // === Global state ===
+        let currentSessionId = 'session_' + Date.now();
+        let isProcessing = false;
+        let chatHistory = []; // local transcript array
+        let attachedFile = null;
+
+        // DOM shortcuts
+        const el = id => document.getElementById(id);
+        const qAll = sel => Array.from(document.querySelectorAll(sel));
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // icons
+            if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
+
+            // wire UI elements
+            setupEventListeners();
+
+            // initialize small UI
+            loadSystemStats().catch(() => { });
+            loadChatHistory().catch(() => { });
+            setupImageLazyLoading();
+        });
+
+        function setupEventListeners() {
+            // Helper to safely add event listener
+            const safeOn = (id, event, handler) => {
+                const elem = el(id);
+                if (elem) elem.addEventListener(event, handler);
+            };
+
+            // Buttons (using inline onclick handlers, so these are optional)
+            safeOn('fileUploadBtn', 'click', () => el('fileUpload')?.click());
+            safeOn('fileUpload', 'change', handleFileAttachment);
+            safeOn('removeAttachmentBtn', 'click', removeAttachedFile);
+            safeOn('sendButton', 'click', sendMessage);
+            safeOn('newChatBtn', 'click', startNewChat);
+            safeOn('exportBtn', 'click', exportChat);
+            safeOn('clearBtn', 'click', clearChat);
+            safeOn('chartModalClose', 'click', () => closeChartModal());
+
+            // quick question buttons
+            qAll('.quick-q').forEach(btn => btn.addEventListener('click', (e) => {
+                const q = btn.dataset.q || btn.getAttribute('data-q');
+                if (q) askQuickQuestion(q);
+            }));
+
+            // message input auto-resize & Enter behavior
+            const textarea = el('messageInput');
+            if (textarea) {
+                textarea.addEventListener('input', autoResizeTextarea);
+                textarea.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+
+            // history click delegation (will be populated dynamically)
+            const historyEl = el('chatHistory');
+            if (historyEl) {
+                historyEl.addEventListener('click', (ev) => {
+                    const item = ev.target.closest('[data-session-id]');
+                    if (item) {
+                        const id = item.getAttribute('data-session-id');
+                        if (id) loadChatSession(id);
+                    }
+                });
+            }
+        }
+
+        function autoResizeTextarea() {
+            const ta = el('messageInput');
+            ta.style.height = 'auto';
+            ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+        }
+
+        // ======== Backend calls (defensive) ========
+        async function loadSystemStats() {
+            try {
+                const resp = await fetch('/stats');
+                if (!resp.ok) throw new Error('Stats fetch failed');
+                const stats = await resp.json();
+                el('systemStats').innerText = `📚 ${stats.total_documents || 0} docs • 🔍 ${stats.total_chunks || 0} chunks • 💬 ${stats.total_conversations || 0} chats`;
+                if (stats.chat_engine_status === 'active') {
+                    el('statusDot').className = 'w-2 h-2 bg-green-500 rounded-full';
+                    el('statusText').textContent = 'System Ready';
+                } else {
+                    el('statusDot').className = 'w-2 h-2 bg-red-500 rounded-full';
+                    el('statusText').textContent = 'System Error';
+                }
+            } catch (err) {
+                console.error('loadSystemStats:', err);
+                el('statusDot').className = 'w-2 h-2 bg-yellow-500 rounded-full';
+                el('statusText').textContent = 'Connection Error';
+            }
+        }
+
+        async function loadChatHistory() {
+            try {
+                const resp = await fetch('/history');
+                if (!resp.ok) throw new Error('History fetch failed');
+                const data = await resp.json();
+
+                const container = el('chatHistory');
+                container.innerHTML = ''; // reset
+
+                if (data.sessions && data.sessions.length) {
+                    data.sessions.forEach(session => {
+                        const isCurrent = session.session_id === currentSessionId;
+                        const title = session.title || session.first_message || 'New Chat';
+                        const truncated = title.length > 40 ? (title.slice(0, 37) + '...') : title;
+
+                        const item = document.createElement('div');
+                        item.className = `group p-3 rounded-lg hover:bg-gray-100 transition-colors ${isCurrent ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-gray-50'}`;
+                        item.setAttribute('data-session-id', session.session_id);
+
+                        item.innerHTML = `
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0 cursor-pointer">
+                  <div class="text-sm font-medium text-gray-900 truncate">${escapeHtml(truncated)}</div>
+                  <div class="text-xs text-gray-500 mt-1">${new Date(session.created_at || Date.now()).toLocaleDateString()}</div>
+                  ${session.message_count ? `<div class="text-xs text-blue-600 mt-1">${session.message_count} messages</div>` : ''}
+                </div>
+                <div class="flex items-center space-x-1 ml-2">
+                  ${isCurrent ? `<i data-lucide="check-circle" class="w-4 h-4 text-blue-500"></i>` : ''}
+                  <button class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all delete-chat" title="Delete chat" data-session-id-delete="${session.session_id}">
+                    <i data-lucide="trash-2" class="w-3 h-3 text-red-600"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+                        container.appendChild(item);
+                    });
+
+                    // attach delete handlers
+                    container.querySelectorAll('.delete-chat').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const sid = btn.getAttribute('data-session-id-delete');
+                            if (sid) deleteChatSession(sid);
+                        });
+                    });
+
+                } else {
+                    container.innerHTML = '<div class="text-sm text-gray-500 text-center py-4">No chat history yet<br><span class="text-xs">Start a conversation to begin</span></div>';
+                }
+
+                // re-create icons
+                if (window.lucide && lucide.createIcons) lucide.createIcons();
+            } catch (err) {
+                console.error('loadChatHistory:', err);
+                el('chatHistory').innerHTML = '<div class="text-sm text-red-500 text-center py-4">Failed to load history</div>';
+            }
+        }
+
+        async function loadChatSession(sessionId) {
+            if (!sessionId || sessionId === currentSessionId) return;
+            try {
+                const resp = await fetch(`/session/${encodeURIComponent(sessionId)}/messages`);
+                if (!resp.ok) throw new Error('Load session failed');
+                const data = await resp.json();
+                clearChat(false); // keep chatHistory cleared but do not reset local chatHistory array for export unless desired
+                currentSessionId = sessionId;
+                if (data.messages && data.messages.length) {
+                    data.messages.forEach(msg => {
+                        if (msg.role === 'user') addMessage('user', msg.content);
+                        else addMessage('assistant', msg.content, msg.sources || [], null, !!msg.cached, msg.web_images || [], msg.charts || []);
+                    });
+                }
+                loadChatHistory().catch(() => { });
+            } catch (err) {
+                console.error('loadChatSession:', err);
+                alert('Failed to load chat session');
+            }
+        }
+
+        async function deleteChatSession(sessionId) {
+            if (!confirm('Are you sure you want to delete this chat?')) return;
+            try {
+                const resp = await fetch(`/session/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+                if (resp.ok) {
+                    const data = await resp.json().catch(() => ({}));
+                    if (sessionId === currentSessionId) {
+                        await startNewChat();
+                    } else {
+                        loadChatHistory().catch(() => { });
+                    }
+                } else {
+                    const errData = await resp.json().catch(() => ({ error: 'Unknown' }));
+                    if (resp.status === 404) loadChatHistory().catch(() => { });
+                    else alert('Failed to delete chat: ' + (errData.error || resp.statusText));
+                }
+            } catch (err) {
+                console.error('deleteChatSession:', err);
+                loadChatHistory().catch(() => { });
+            }
+        }
+
+        async function startNewChat() {
+            try {
+                const resp = await fetch('/session/new', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ first_message: '' }) });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.session_id) currentSessionId = data.session_id;
+                } else {
+                    // fallback
+                    currentSessionId = 'session_' + Date.now();
+                }
+            } catch (err) {
+                console.error('startNewChat error, falling back to client session', err);
+                currentSessionId = 'session_' + Date.now();
+            } finally {
+                clearChat();
+                removeAttachedFile();
+                loadChatHistory().catch(() => { });
+                el('messageInput').focus();
+            }
+        }
+
+        function askQuickQuestion(question) {
+            el('messageInput').value = question;
+            autoResizeTextarea();
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            if (isProcessing) return;
+            const input = el('messageInput');
+            const text = (input.value || '').trim();
+            if (!text && !attachedFile) return;
+
+            // prepare message
+            input.value = '';
+            autoResizeTextarea();
+            isProcessing = true;
+
+            // if attached file present and not uploaded to server, upload first
+            if (attachedFile && attachedFile.sessionId === currentSessionId) {
+                try {
+                    await uploadAttachedFile();
+
+                    // If there's no message text, just show file uploaded and return
+                    if (!text) {
+                        isProcessing = false;
+                        input.focus();
+                        return; // Don't send a chat message, just uploaded the file
+                    }
+                } catch (err) {
+                    console.error('File upload failed:', err);
+                    addMessage('error', 'File upload failed: ' + (err.message || 'unknown'));
+                    isProcessing = false;
+                    input.focus();
+                    return;
+                }
+            }
+
+            // Show user message locally
+            const userMessage = attachedFile ? `📎 ${attachedFile.name}\n\n${text}` : text;
+            addMessage('user', userMessage);
+
+            // show typing
+            showTypingIndicator();
+
+            try {
+                const start = Date.now();
+                const resp = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        question: text,
+                        session_id: currentSessionId,
+                        context_type: 'general',
+                        has_attachment: !!attachedFile
+                    })
+                });
+
+                const data = await resp.json().catch(() => ({}));
+                const elapsed = (Date.now() - start) / 1000;
+
+                if (resp.ok) {
+                    // Check if this is a "file processing" status response
+                    if (data.response_type === 'Processing Status' ||
+                        (data.answer && data.answer.includes('still processing'))) {
+                        // Show processing animation and poll for completion
+                        hideTypingIndicator();
+                        showProcessingIndicator();
+
+                        // Poll every 2 seconds to check if file is ready
+                        const pollInterval = setInterval(async () => {
+                            try {
+                                const checkResp = await fetch('/chat', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        question: text,
+                                        session_id: currentSessionId,
+                                        context_type: 'general',
+                                        has_attachment: false
+                                    })
+                                });
+
+                                const checkData = await checkResp.json().catch(() => ({}));
+
+                                // If we get a real response (not processing status)
+                                if (checkData.response_type !== 'Processing Status' &&
+                                    (!checkData.answer || !checkData.answer.includes('still processing'))) {
+                                    clearInterval(pollInterval);
+                                    showSuccessIndicator();
+                                    setTimeout(() => {
+                                        hideTypingIndicator();
+                                        addMessage('assistant', checkData.answer || 'No answer', checkData.sources || [], elapsed, !!checkData.cached, checkData.web_images || [], checkData.charts || []);
+                                    }, 2000); // Show success for 2 seconds before showing answer
+                                }
+                            } catch (err) {
+                                clearInterval(pollInterval);
+                                hideTypingIndicator();
+                                console.error('Polling error:', err);
+                            }
+                        }, 2000);
+
+                        // Stop polling after 60 seconds
+                        setTimeout(() => {
+                            clearInterval(pollInterval);
+                            hideTypingIndicator();
+                            addMessage('info', 'File is taking longer to process. Please try your question again in a moment.');
+                        }, 60000);
+                    } else {
+                        // Normal response
+                        hideTypingIndicator();
+                        addMessage('assistant', data.answer || 'No answer', data.sources || [], elapsed, !!data.cached, data.web_images || [], data.charts || []);
+                        if (attachedFile) removeAttachedFile();
+
+                        // Always reload chat history after sending a message to show new chat entry
+                        setTimeout(() => {
+                            loadChatHistory().catch(() => { });
+                        }, 500); // Small delay to ensure backend has saved the chat
+                    }
+                } else {
+                    throw new Error(data.error || resp.statusText || 'Unknown chat error');
+                }
+            } catch (err) {
+                hideTypingIndicator();
+                addMessage('error', 'Sorry, I encountered an error: ' + (err.message || 'unknown'));
+                console.error('sendMessage error:', err);
+            } finally {
+                isProcessing = false;
+                input.focus();
+            }
+        }
+
+        async function uploadAttachedFile() {
+            if (!attachedFile || !attachedFile.file) return;
+
+            // Show processing animation
+            showProcessingIndicator();
+
+            const fd = new FormData();
+            fd.append('file', attachedFile.file);
+            fd.append('session_id', currentSessionId);
+
+            const resp = await fetch('/upload', { method: 'POST', body: fd });
+            const result = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+                hideTypingIndicator();
+                throw new Error(result.error || 'Upload failed');
+            }
+
+            if (result.session_id) {
+                console.log('📎 Syncing session ID: ' + currentSessionId + ' → ' + result.session_id);
+                currentSessionId = result.session_id;
+                if (attachedFile) attachedFile.sessionId = result.session_id;
+            }
+
+            // Poll for processing completion
+            if (result.task_id) {
+                await pollFileProcessing(result.task_id);
+            }
+
+            return result;
+        }
+
+        async function pollFileProcessing(taskId, maxAttempts = 30) {
+            for (let i = 0; i < maxAttempts; i++) {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+
+                try {
+                    const resp = await fetch(`/upload_status/${taskId}`);
+                    const status = await resp.json();
+
+                    if (status.status === 'completed') {
+                        // Show success message
+                        showSuccessIndicator();
+                        return true;
+                    } else if (status.status === 'failed') {
+                        hideTypingIndicator();
+                        addMessage('error', 'File processing failed: ' + (status.error_message || 'Unknown error'));
+                        return false;
+                    }
+                    // Continue polling if status is 'processing' or 'pending'
+                } catch (err) {
+                    console.error('Error checking file status:', err);
+                }
+            }
+
+            // Timeout after max attempts
+            hideTypingIndicator();
+            addMessage('info', 'File is still processing in the background. You can start asking questions.');
+            return false;
+        }
+
+        function showTypingIndicator(type = 'thinking') {
+            // Remove any existing thinking indicator
+            const existing = document.getElementById('thinkingIndicator');
+            if (existing) existing.remove();
+
+            // Create thinking indicator
+            const container = el('chatMessages');
+            const indicator = document.createElement('div');
+            indicator.id = 'thinkingIndicator';
+            indicator.className = 'message-animation max-w-4xl mx-auto mb-6';
+
+            const indicatorClass = type === 'processing' ? 'processing-indicator' :
+                type === 'success' ? 'success-indicator' : 'thinking-indicator';
+
+            const message = type === 'processing' ? 'BlueCarbon-LEDGER is processing your file' :
+                type === 'success' ? 'BlueCarbon-LEDGER has processed your file! You can now ask questions' :
+                    'BlueCarbon-LEDGER is thinking';
+
+            indicator.innerHTML = `
+                <div class="${indicatorClass}">
+                    <div class="thinking-logo">
+                        <img src="{{ url_for('static', filename='assets/chatbot logo.jpg') }}" alt="AI">
+                    </div>
+                    <div class="thinking-text">
+                        ${message}<span class="thinking-dots"><span></span><span></span><span></span></span>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(indicator);
+            container.scrollTop = container.scrollHeight;
+            el('sendButton').disabled = true;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('thinkingIndicator');
+            if (indicator) indicator.remove();
+            el('sendButton').disabled = false;
+        }
+
+        function showProcessingIndicator() {
+            showTypingIndicator('processing');
+        }
+
+        function showSuccessIndicator() {
+            showTypingIndicator('success');
+            // Auto-hide success message after 3 seconds
+            setTimeout(() => {
+                const indicator = document.getElementById('thinkingIndicator');
+                if (indicator && indicator.querySelector('.success-indicator')) {
+                    indicator.style.transition = 'opacity 0.5s ease-out';
+                    indicator.style.opacity = '0';
+                    setTimeout(() => indicator.remove(), 500);
+                }
+            }, 3000);
+        }
+
+        // === Add messages (robust, avoids brittle inline HTML injection) ===
+        function addMessage(role, content, sources = [], responseTime = null, cached = false, webImages = [], charts = []) {
+            const container = el('chatMessages');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message-animation max-w-4xl mx-auto';
+
+            if (role === 'user') {
+                wrapper.innerHTML = `
+          <div class="flex justify-end mb-6">
+            <div class="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 max-w-2xl">
+              <div class="whitespace-pre-wrap">${escapeHtmlNewlines(content)}</div>
+            </div>
+          </div>
+        `;
+                chatHistory.push({ role: 'user', question: content, title: content.slice(0, 40), timestamp: new Date().toISOString() });
+            } else if (role === 'assistant') {
+                // build assistant bubble
+                const left = document.createElement('div');
+                left.className = 'flex justify-start mb-6';
+                const inner = document.createElement('div');
+                inner.className = 'flex space-x-3 max-w-4xl w-full';
+                left.appendChild(inner);
+
+                const avatar = document.createElement('div');
+                avatar.className = 'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden bg-white border border-blue-200';
+                avatar.innerHTML = `<img src="{{ url_for('static', filename='assets/chatbot logo.jpg') }}" alt="AI" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="w-full h-full bg-blue-100 rounded-full flex items-center justify-center" style="display:none;"><i data-lucide="waves" class="w-4 h-4 text-blue-600"></i></div>`;
+
+                const contentBox = document.createElement('div');
+                contentBox.className = 'bg-white border border-gray-200 rounded-2xl rounded-tl-md px-4 py-3 flex-1';
+
+                const textDiv = document.createElement('div');
+                textDiv.className = 'whitespace-pre-wrap';
+                textDiv.innerHTML = formatMessage(content);
+
+                contentBox.appendChild(textDiv);
+
+                // charts
+                if (charts && charts.length) {
+                    const chartsContainer = document.createElement('div');
+                    chartsContainer.className = 'charts-container mb-4';
+                    charts.forEach((chart, idx) => {
+                        const cw = document.createElement('div');
+                        cw.className = 'chart-item mb-4';
+                        cw.innerHTML = `
+              <div class="chart-wrapper bg-white border border-gray-200 rounded-lg p-4">
+                <h4 class="chart-title text-sm font-semibold text-gray-800 mb-3">${escapeHtml(chart.title || ('Chart ' + (idx + 1)))}</h4>
+                <div class="chart-image-container text-center">
+                  <img class="chart-image w-full h-auto rounded" src="${chart.image_base64 ? 'data:image/png;base64,' + chart.image_base64 : (chart.url || '')}" alt="${escapeHtml(chart.title || ('Chart ' + (idx + 1)))}" style="cursor:pointer;max-height:400px;object-fit:contain;">
+                </div>
+                ${chart.caption ? `<p class="chart-caption text-xs text-gray-600 mt-2">${escapeHtml(chart.caption)}</p>` : ''}
+              </div>
+            `;
+                        // wire click to open modal
+                        const img = cw.querySelector('img');
+                        if (img) img.addEventListener('click', () => openChartModal(img.src, chart.title || ('Chart ' + (idx + 1)), chart.caption || ''));
+                        chartsContainer.appendChild(cw);
+                    });
+                    contentBox.appendChild(chartsContainer);
+                }
+
+                // web images
+                if (webImages && webImages.length) {
+                    const grid = document.createElement('div');
+                    grid.className = 'web-images-container mb-4';
+                    grid.innerHTML = `<div class="web-images-header mb-3"><i data-lucide="image" class="w-4 h-4 mr-2"></i><span class="font-medium text-gray-700">Related Images (${webImages.length})</span></div>`;
+                    const imagesGrid = document.createElement('div');
+                    imagesGrid.className = 'web-images-grid';
+                    webImages.forEach(imgObj => {
+                        const item = document.createElement('div');
+                        item.className = 'web-image-item';
+                        const imgEl = document.createElement('img');
+                        imgEl.className = 'web-image';
+                        imgEl.src = imgObj.thumbnail || imgObj.url || '';
+                        imgEl.alt = imgObj.alt_text || imgObj.title || '';
+                        imgEl.loading = 'lazy';
+                        imgEl.addEventListener('error', () => handleImageError(imgEl, imgObj.fallback_text || imgObj.title || 'Image'));
+                        imgEl.addEventListener('click', () => openImageModal(imgObj.url || imgEl.src, imgObj.title || '', imgObj.source_domain || imgObj.source || ''));
+                        const caption = document.createElement('div');
+                        caption.className = 'web-image-caption';
+                        caption.innerHTML = `<div class="web-image-title">${escapeHtml(imgObj.title || '')}</div>
+                                 <div class="web-image-source"><i data-lucide="external-link" class="w-3 h-3"></i><span>${escapeHtml(imgObj.source_domain || imgObj.source || '')}</span>
+                                 ${imgObj.relevance_score ? `<span class="web-image-relevance">${Math.round((imgObj.relevance_score || 0) * 100)}%</span>` : ''}</div>`;
+                        item.appendChild(imgEl);
+                        item.appendChild(caption);
+                        imagesGrid.appendChild(item);
+                    });
+                    grid.appendChild(imagesGrid);
+                    contentBox.appendChild(grid);
+                }
+
+                // sources block - separate dataset and web sources
+                if (sources && sources.length) {
+                    const sBox = document.createElement('div');
+                    sBox.className = 'mt-3 pt-3 border-t border-gray-100';
+
+                    // Separate sources by type
+                    const datasetSources = sources.filter(s => s.source_type !== 'web' && s.source_type !== 'news' && s.source_type !== 'image' && !(s.filename && s.filename.startsWith('http')));
+                    const webSources = sources.filter(s => s.source_type === 'web' || s.source_type === 'news' || s.source_type === 'image' || (s.filename && s.filename.startsWith('http')));
+
+                    // Dataset Sources (Non-clickable)
+                    if (datasetSources.length > 0) {
+                        const dsTitle = document.createElement('div');
+                        dsTitle.className = 'text-xs font-medium text-gray-600 mb-2 flex items-center';
+                        dsTitle.innerHTML = `<i data-lucide="database" class="w-3 h-3 mr-1"></i> Supporting Dataset (${datasetSources.length})`;
+                        sBox.appendChild(dsTitle);
+
+                        const dsWrap = document.createElement('div');
+                        dsWrap.className = 'flex flex-wrap gap-2 mb-3';
+                        datasetSources.forEach(source => {
+                            let displayName = source.filename ? source.filename.replace(/\.[^/.]+$/, "").slice(0, 25) : 'dataset';
+                            const card = document.createElement('div');
+                            // Non-clickable style - no cursor-pointer, no hover effect
+                            card.className = 'inline-flex items-center space-x-1 px-2 py-1 bg-blue-50 border-blue-200 text-blue-700 rounded-md border text-xs';
+                            card.title = source.snippet || 'Dataset source';
+                            card.innerHTML = `<i data-lucide="file-text" class="w-3 h-3"></i><span class="font-medium">${escapeHtml(displayName)}</span><span class="text-xs opacity-75">${Math.round((source.similarity_score || 0) * 100)}%</span>`;
+                            // No click event - dataset sources are not clickable
+                            dsWrap.appendChild(card);
+                        });
+                        sBox.appendChild(dsWrap);
+                    }
+
+                    // Web Sources (Clickable)
+                    if (webSources.length > 0) {
+                        const wsTitle = document.createElement('div');
+                        wsTitle.className = 'text-xs font-medium text-gray-600 mb-2 flex items-center';
+                        wsTitle.innerHTML = `<i data-lucide="globe" class="w-3 h-3 mr-1"></i> Web Sources (${webSources.length})`;
+                        sBox.appendChild(wsTitle);
+
+                        const wsWrap = document.createElement('div');
+                        wsWrap.className = 'flex flex-wrap gap-2';
+                        webSources.forEach(source => {
+                            let displayName = '';
+                            let url = source.filename || source.url || '';
+                            try {
+                                displayName = (new URL(url)).hostname.replace('www.', '');
+                            } catch (e) {
+                                displayName = source.title || url.slice(0, 30) || 'web source';
+                            }
+                            const card = document.createElement('a');
+                            card.href = url;
+                            card.target = '_blank';
+                            card.rel = 'noopener noreferrer';
+                            // Clickable style with hover effects
+                            card.className = 'inline-flex items-center space-x-1 px-2 py-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100 rounded-md border text-xs cursor-pointer hover:shadow-sm transition-all';
+                            card.title = source.snippet || source.title || 'Click to open';
+                            card.innerHTML = `<i data-lucide="external-link" class="w-3 h-3"></i><span class="font-medium">${escapeHtml(displayName)}</span><span class="text-xs opacity-75">${Math.round((source.similarity_score || source.relevance_score || 0) * 100)}%</span>`;
+                            wsWrap.appendChild(card);
+                        });
+                        sBox.appendChild(wsWrap);
+                    }
+
+                    contentBox.appendChild(sBox);
+                }
+
+                // actions row (copy/translate/regenerate)
+                const actions = document.createElement('div');
+                actions.className = 'flex items-center space-x-2 mt-4 pt-3 border-t border-gray-100';
+
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'btn-action flex items-center space-x-1 px-3 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors';
+                copyBtn.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i><span>Copy</span>';
+                copyBtn.addEventListener('click', () => {
+                    copyToClipboardText(content);
+                    copyBtn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i><span>Copied!</span>';
+                    setTimeout(() => { copyBtn.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i><span>Copy</span>'; if (window.lucide) lucide.createIcons(); }, 1800);
+                });
+
+                const translateBtn = document.createElement('button');
+                translateBtn.className = 'btn-action flex items-center space-x-1 px-3 py-1 text-xs text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors';
+                translateBtn.innerHTML = '<i data-lucide="languages" class="w-3 h-3"></i><span>Translate</span>';
+                translateBtn.addEventListener('click', () => openTranslateModal(content));
+
+                const regenBtn = document.createElement('button');
+                regenBtn.className = 'btn-action flex items-center space-x-1 px-3 py-1 text-xs text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors';
+                regenBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i><span>Regenerate</span>';
+                regenBtn.addEventListener('click', () => regenerateResponse(content));
+
+                actions.appendChild(copyBtn);
+                actions.appendChild(translateBtn);
+                actions.appendChild(regenBtn);
+
+                contentBox.appendChild(actions);
+
+                if (responseTime) {
+                    const meta = document.createElement('div');
+                    meta.className = 'flex items-center space-x-4 text-xs text-gray-500 mt-3';
+                    meta.innerHTML = `<span>⏱ ${responseTime.toFixed(2)}s</span>${cached ? '<span>💾 Cached</span>' : ''}<span>🔍 ${sources.length || 0} sources</span>`;
+                    contentBox.appendChild(meta);
+                }
+
+                inner.appendChild(avatar);
+                inner.appendChild(contentBox);
+                wrapper.appendChild(left);
+
+                // store assistant's answer with last history item
+                if (chatHistory.length > 0) {
+                    chatHistory[chatHistory.length - 1].answer = content;
+                    chatHistory[chatHistory.length - 1].sources = sources;
+                } else {
+                    chatHistory.push({ role: 'assistant', answer: content, sources: sources, timestamp: new Date().toISOString() });
+                }
+            } else if (role === 'error') {
+                wrapper.innerHTML = `
+          <div class="flex justify-start mb-6">
+            <div class="flex space-x-3 max-w-4xl">
+              <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"><i data-lucide="alert-circle" class="w-4 h-4 text-red-600"></i></div>
+              <div class="bg-red-50 border border-red-200 rounded-2xl rounded-tl-md px-4 py-3 flex-1"><div class="whitespace-pre-wrap text-red-800">${escapeHtmlNewlines(content)}</div></div>
+            </div>
+          </div>
+        `;
+            }
+
+            container.appendChild(wrapper);
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ======== Helper small utilities ========
+        function escapeHtml(str = '') {
+            return String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+        function escapeHtmlNewlines(s = '') { return escapeHtml(s).replace(/\n/g, '<br>'); }
+
+        // (very small markdown-like replacements, safe-ish)
+        function formatMessage(content = '') {
+            if (!content) return '';
+            // simple code/heading handling - keep it conservative
+            let out = escapeHtml(content);
+            out = out.replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-gray-900 mt-4 mb-2">$1</h3>');
+            out = out.replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>');
+            out = out.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-gray-900 mt-8 mb-4">$1</h1>');
+            out = out.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            out = out.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            out = out.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm">$1</code>');
+            out = out.replace(/\n/g, '<br>');
+            return out;
+        }
+
+        async function regenerateResponse(originalQuestion) {
+            if (!originalQuestion) return;
+            try {
+                const btn = document.activeElement;
+                if (btn) { btn.disabled = true; }
+                const resp = await fetch('/regenerate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: originalQuestion, session_id: currentSessionId, context_type: 'general' })
+                });
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok) {
+                    // append regenerated assistant message
+                    addMessage('assistant', data.answer || 'No answer', data.sources || [], null, !!data.cached, data.web_images || [], data.charts || []);
+                } else throw new Error(data.error || 'Regenerate failed');
+            } catch (err) {
+                console.error('regenerateResponse:', err);
+                addMessage('error', 'Regenerate failed: ' + (err.message || 'unknown'));
+            } finally {
+                if (document.activeElement) document.activeElement.disabled = false;
+            }
+        }
+
+        // File attachment handling (client-only display + upload)
+        function handleFileAttachment(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert('Please select a PDF file');
+                e.target.value = '';
+                return;
+            }
+            attachedFile = { file, name: file.name, size: formatFileSize(file.size), sessionId: currentSessionId };
+            showAttachedFile();
+            e.target.value = '';
+        }
+
+        function showAttachedFile() {
+            if (!attachedFile) return;
+            el('attachedFileName').textContent = attachedFile.name;
+            el('attachedFileSize').textContent = attachedFile.size;
+            el('attachedFiles').classList.remove('hidden');
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+        }
+
+        function removeAttachedFile() {
+            attachedFile = null;
+            el('attachedFiles').classList.add('hidden');
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes) return '0 Bytes';
+            const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Export chat to JSON file
+        function exportChat() {
+            if (!chatHistory || chatHistory.length === 0) { alert('No chat history to export'); return; }
+            try {
+                const exportData = { session_id: currentSessionId, timestamp: new Date().toISOString(), messages: chatHistory };
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'blue_carbon_chat_' + currentSessionId + '.json';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('exportChat err:', err);
+                alert('Failed to export chat history');
+            }
+        }
+
+        function clearChat(resetHistory = true) {
+            el('chatMessages').innerHTML = `
+        <div class="max-w-4xl mx-auto">
+          <div class="text-center py-12">
+            <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden bg-white border-4 border-blue-100 shadow-lg">
+              <img src="{{ url_for('static', filename='assets/chatbot logo.jpg') }}" alt="BlueCarbon-LEDGER Logo" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="w-full h-full bg-blue-100 rounded-full flex items-center justify-center" style="display:none;">
+                <i data-lucide="waves" class="w-8 h-8 text-blue-600"></i>
+              </div>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Welcome to BlueCarbon-LEDGER AI</h3>
+            <p class="text-gray-600 mb-6">Your professional assistant for blue carbon research and analysis</p>
+          </div>
+        </div>
+      `;
+            if (resetHistory) chatHistory = [];
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+        }
+
+        // Copy helper
+        async function copyToClipboardText(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (err) {
+                const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+                ta.select(); document.execCommand('copy'); ta.remove();
+            }
+        }
+
+
+
+        // ===== Image modal & chart modal handling (single shared modals) =====
+        function openImageModal(url, title, source) {
+            // create simple modal-like overlay element
+            const modal = document.createElement('div');
+            modal.className = 'web-image-modal fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-60 p-4';
+            modal.onclick = (e) => { if (e.target === modal) closeImageModal(modal); };
+            modal.innerHTML = `
+        <div class="web-image-modal-content bg-white rounded-lg overflow-hidden max-w-[90vw] max-h-[90vh] p-4">
+          <button class="web-image-modal-close absolute top-4 right-4 bg-black/40 text-white rounded-full w-8 h-8">×</button>
+          <img src="${escapeHtml(url)}" alt="${escapeHtml(title || '')}" style="max-width:100%; max-height:70vh; display:block; margin:0 auto;" onerror="this.style.display='none'">
+          <div class="p-4">
+            <div class="web-image-modal-title font-semibold">${escapeHtml(title || '')}</div>
+            <div class="web-image-modal-source text-sm text-gray-500">Source: ${escapeHtml(source || '')}</div>
+            <div class="mt-3"><button class="px-3 py-1 bg-blue-600 text-white rounded" onclick="window.open('${escapeHtml(url)}','_blank')">View Original</button></div>
+          </div>
+        </div>
+      `;
+            document.body.appendChild(modal);
+            modal.querySelector('.web-image-modal-close').addEventListener('click', () => closeImageModal(modal));
+            document.body.style.overflow = 'hidden';
+        }
+        function closeImageModal(modal) {
+            if (!modal) return;
+            modal.remove();
+            document.body.style.overflow = 'auto';
+        }
+
+        // Chart modal (uses the pre-existing chartModal in DOM)
+        function openChartModal(imageSrc, title, caption) {
+            el('chartModalImage').src = imageSrc || '';
+            el('chartModalTitle').textContent = title || 'Chart';
+            el('chartModalCaption').textContent = caption || '';
+            el('chartModal').classList.remove('hidden');
+            el('chartModal').classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeChartModal() {
+            el('chartModal').classList.add('hidden');
+            el('chartModal').classList.remove('flex');
+            el('chartModalImage').src = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        function handleImageError(img, fallbackText) {
+            const container = img && img.parentElement;
+            if (!container) return;
+            container.innerHTML = `<div class="web-image-error"><i data-lucide="image-off" class="w-6 h-6 mb-2"></i><span>${escapeHtml(fallbackText || 'Image failed to load')}</span></div>`;
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+        }
+
+        function handleModalImageError(img, title) {
+            img.style.display = 'none';
+            const parent = img.parentElement;
+            if (!parent) return;
+            const errDiv = document.createElement('div');
+            errDiv.className = 'p-8 text-center text-gray-500';
+            errDiv.innerHTML = `<i data-lucide="image-off" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i><p>Unable to load image</p><p class="text-sm mt-2">${escapeHtml(title || '')}</p>`;
+            parent.insertBefore(errDiv, img);
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+        }
+
+        // Lazy loading images (data-src optional)
+        function setupImageLazyLoading() {
+            if (!('IntersectionObserver' in window)) return;
+            const io = new IntersectionObserver((entries, obs) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        if (img.dataset.src) { img.src = img.dataset.src; img.removeAttribute('data-src'); }
+                        obs.unobserve(img);
+                    }
+                });
+            }, { rootMargin: '100px' });
+            document.querySelectorAll('img[data-src]').forEach(i => io.observe(i));
+        }
+
+        // ========== Translate Modal Functions ==========
+        let currentTranslateText = '';
+
+        function openTranslateModal(text) {
+            currentTranslateText = text || '';
+            document.getElementById('translateModal').classList.remove('hidden');
+            document.getElementById('translateModal').classList.add('flex');
+            document.getElementById('translationResult').classList.add('hidden');
+        }
+
+        function closeTranslateModal() {
+            document.getElementById('translateModal').classList.add('hidden');
+            document.getElementById('translateModal').classList.remove('flex');
+        }
+
+        async function performTranslation() {
+            const targetLang = document.getElementById('targetLanguage').value;
+            const resultDiv = document.getElementById('translationResult');
+            const textDiv = document.getElementById('translatedText');
+            const translateBtn = document.querySelector('#translateModal button[onclick="performTranslation()"]');
+
+            // Show loading state
+            const originalBtnText = translateBtn.innerHTML;
+            translateBtn.disabled = true;
+            translateBtn.innerHTML = `
+                <svg class="animate-spin h-5 w-5 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Translating...
+            `;
+
+            try {
+                const resp = await fetch('/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: currentTranslateText, target_lang: targetLang })
+                });
+                const data = await resp.json().catch(() => ({}));
+
+                if (resp.ok && data.translated) {
+                    textDiv.innerHTML = formatMessage(data.translated);
+                    resultDiv.classList.remove('hidden');
+
+                    // Change button to "Translated!" with checkmark
+                    translateBtn.innerHTML = `
+                        <svg class="h-5 w-5 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Translated!
+                    `;
+
+                    // Reset button after 2 seconds
+                    setTimeout(() => {
+                        translateBtn.innerHTML = originalBtnText;
+                        translateBtn.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Translation failed');
+                }
+            } catch (err) {
+                textDiv.innerHTML = `<span class="text-red-600">Translation failed: ${escapeHtml(err.message || 'unknown')}</span>`;
+                resultDiv.classList.remove('hidden');
+
+                // Reset button on error
+                translateBtn.innerHTML = originalBtnText;
+                translateBtn.disabled = false;
+            }
+        }
+    </script>
+
+    <!-- Translation Modal -->
+    <div id="translateModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold text-gray-900">Translate Response</h3>
+                <button onclick="closeTranslateModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Language</label>
+                    <select id="targetLanguage"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <optgroup label="Indian Languages">
+                            <option value="hi">🇮🇳 Hindi (हिंदी)</option>
+                            <option value="gu">🇮🇳 Gujarati (ગુજરાતી)</option>
+                            <option value="mr">🇮🇳 Marathi (मराठी)</option>
+                            <option value="ta">🇮🇳 Tamil (தமிழ்)</option>
+                        </optgroup>
+                        <optgroup label="Continental Languages">
+                            <option value="es">🇪🇸 Spanish (Español)</option>
+                            <option value="fr">🇫🇷 French (Français)</option>
+                            <option value="de">🇩🇪 German (Deutsch)</option>
+                            <option value="pt">🇵🇹 Portuguese (Português)</option>
+                            <option value="zh-cn">🇨🇳 Chinese (中文)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div id="translationResult" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Translation</label>
+                    <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg max-h-96 overflow-y-auto">
+                        <div id="translatedText" class="text-gray-900"></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button onclick="closeTranslateModal()"
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+                    <button onclick="performTranslation()"
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Translate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

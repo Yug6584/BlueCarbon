@@ -17,6 +17,8 @@ import Marketplace from './Marketplace';
 import GISMapping from './GISMapping';
 import CreditTrading from './CreditTrading';
 import GovernmentSchemes from './GovernmentSchemes';
+import CompanySettings from './Settings';
+import FloatingChatbot from '../../components/FloatingChatbot';
 
 const CompanyPanel = ({ darkMode, setDarkMode }) => {
   const menuItems = [
@@ -30,23 +32,29 @@ const CompanyPanel = ({ darkMode, setDarkMode }) => {
   ];
 
   return (
-    <Layout 
-      menuItems={menuItems} 
-      panelType="company"
-      darkMode={darkMode}
-      setDarkMode={setDarkMode}
-    >
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/projects" element={<ProjectManagement />} />
-        <Route path="/mrv-upload" element={<MRVUpload />} />
-        <Route path="/gis-mapping" element={<GISMapping />} />
-        <Route path="/marketplace" element={<Marketplace />} />
-        <Route path="/trading" element={<CreditTrading />} />
-        <Route path="/schemes" element={<GovernmentSchemes />} />
-      </Routes>
-    </Layout>
+    <>
+      <Layout 
+        menuItems={menuItems} 
+        panelType="company"
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      >
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/projects" element={<ProjectManagement />} />
+          <Route path="/mrv-upload" element={<MRVUpload />} />
+          <Route path="/gis-mapping" element={<GISMapping />} />
+          <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/trading" element={<CreditTrading />} />
+          <Route path="/schemes" element={<GovernmentSchemes />} />
+          <Route path="/settings" element={<CompanySettings />} />
+        </Routes>
+      </Layout>
+      
+      {/* Floating AI Chatbot - Available on all Company Panel pages */}
+      <FloatingChatbot />
+    </>
   );
 };
 

@@ -1,0 +1,101 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║        🤖 BLUECARBON AI CHATBOT - QUICK START GUIDE 🤖          ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+✨ WHAT'S NEW?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+A floating AI chatbot is now integrated into your Company Panel!
+
+📍 WHERE TO FIND IT?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Look for the PURPLE CHAT ICON (💬) in the bottom-right corner
+Available on ALL Company Panel pages:
+  ✓ Dashboard
+  ✓ Project Management  
+  ✓ MRV Upload
+  ✓ GIS Mapping
+  ✓ Marketplace
+  ✓ Credit Trading
+  ✓ Government Schemes
+
+🚀 HOW TO START?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: Start the Chatbot Service
+   
+   Double-click: start-chatbot.bat
+   
+   OR manually:
+   cd frontend\src\components\Chatbot\carbon-chatbot
+   python app.py
+
+STEP 2: Configure API Key (First Time Only)
+   
+   1. Get FREE API key from: https://console.groq.com
+   2. Open: frontend\src\components\Chatbot\carbon-chatbot\.env
+   3. Add: GROQ_API_KEY=your_key_here
+   4. Restart chatbot service
+
+STEP 3: Use the Chatbot
+   
+   1. Login to Company Panel (yugcompany@gmail.com)
+   2. Click the purple chat icon (bottom-right)
+   3. Start asking questions!
+
+💡 EXAMPLE QUESTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• "How do I calculate carbon credits?"
+• "What is the MRV process?"
+• "Show me blue carbon cycle images"
+• "Explain mangrove restoration best practices"
+• "What documents do I need for certification?"
+
+🎯 FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ AI-Powered Responses
+✓ PDF Document Upload & Analysis
+✓ Web Search Integration
+✓ Automatic Image Fetching
+✓ Multi-Language Support (50+ languages)
+✓ Chat History
+✓ Source Citations
+
+🔴 TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: Chatbot shows "Offline" 🔴
+Solution: Run start-chatbot.bat
+
+Problem: "Module not found" error
+Solution: pip install -r requirements.txt
+
+Problem: "Port 5000 already in use"
+Solution: Change PORT in config.py to 5001
+
+Problem: API key error
+Solution: Add GROQ_API_KEY to .env file
+
+📁 FILE LOCATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Chatbot Service:  frontend\src\components\Chatbot\carbon-chatbot\
+Start Script:     start-chatbot.bat
+Configuration:    frontend\src\components\Chatbot\carbon-chatbot\.env
+Component:        frontend\src\components\FloatingChatbot.jsx
+
+🎨 STATUS INDICATORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟢 Green = Online & Ready
+🔴 Red   = Offline (Start the service)
+
+📞 NEED MORE HELP?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Read: CHATBOT_SETUP.md (detailed guide)
+Read: frontend\src\components\Chatbot\carbon-chatbot\README.md
+
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║              🎉 ENJOY YOUR AI ASSISTANT! 🎉                      ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
